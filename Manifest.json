@@ -1,0 +1,21 @@
+{
+  "name": "Speed Sage HUD",
+  "short_name": "Speed Sage",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192/06b6d4/000000?text=HUD",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512/06b6d4/000000?text=HUD",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
