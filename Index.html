@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+    
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -10,7 +11,7 @@
     
     <link rel="manifest" href="manifest.json">
 
-    <title>Speed Sage HUD v4.0 (Map Edition)</title>
+    <title>Speed Sage HUD v4.1</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     
@@ -21,8 +22,8 @@
                 extend: {
                     colors: {
                         background: '#000000',
-                        primary: '#06b6d4', // Cyan-500
-                        alert: '#ef4444',   // Red-500
+                        primary: '#06b6d4', 
+                        alert: '#ef4444',   
                         muted: '#94a3b8',
                     },
                     fontFamily: {
@@ -59,18 +60,15 @@
             transform-origin: center top;
         }
 
-        /* MIRROR MODE */
-        .mirror-mode {
-            transform: scaleY(-1);
-        }
+        .mirror-mode { transform: scaleY(-1); }
 
-        /* Animated Grid Background - Now blended with Map */
+        /* Grid Background */
         .grid-bg {
             background-image: 
                 linear-gradient(rgba(6, 182, 212, 0.1) 1px, transparent 1px), 
                 linear-gradient(90deg, rgba(6, 182, 212, 0.1) 1px, transparent 1px);
             background-size: 40px 40px;
-            mix-blend-mode: screen; /* Blends coolly with the map */
+            mix-blend-mode: screen; 
         }
 
         @keyframes gridMove {
@@ -78,9 +76,7 @@
             100% { background-position: 0 40px; }
         }
         
-        .animate-grid {
-            animation: gridMove 2s linear infinite;
-        }
+        .animate-grid { animation: gridMove 2s linear infinite; }
 
         .glass-panel {
             background: rgba(0, 0, 0, 0.85);
@@ -99,20 +95,23 @@
             width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px;
         }
 
-        body::-webkit-scrollbar { display: none; }
+        /* HIDE SCROLLBAR BUT ALLOW SCROLLING */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
         .alert-mode { animation: flashAlert 1s infinite; }
 
-        /* Map Specifics */
+        /* Map Specifics - FIXED POSITION NOW */
         #map-bg {
-            filter: grayscale(100%) invert(100%) contrast(1.2) brightness(0.6); /* Cyberpunk Filter */
+            filter: grayscale(100%) invert(100%) contrast(1.2) brightness(0.6);
             z-index: 0;
-            pointer-events: none; /* Let clicks pass through to HUD */
+            pointer-events: none;
+            position: fixed; /* Ensures map stays put when scrolling UI */
+            top:0; left:0; right:0; bottom:0;
         }
         
-        /* Custom Arrow Marker */
         .arrow-icon {
-            width: 0; 
-            height: 0; 
+            width: 0; height: 0; 
             border-left: 10px solid transparent;
             border-right: 10px solid transparent;
             border-bottom: 20px solid #06b6d4;
@@ -120,9 +119,14 @@
         }
     </style>
 </head>
-<body id="app-body" class="min-h-screen bg-black text-white overflow-hidden relative font-sans select-none transition-colors duration-300">
+<body id="app-body" class="h-screen w-screen bg-black text-white overflow-hidden font-sans select-none transition-colors duration-300">
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <div id="map-bg"></div>
+    <div id="scene-container" class="fixed inset-0 pointer-events-none hud-perspective overflow-hidden z-[5]">
+        <div id="grid-plane" class="absolute inset-[-50%] w-[200%] h-[200%] grid-bg animate-grid hud-grid-3d"></div>
+    </div>
 
     <div id="settings-modal" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl hidden flex-col items-center justify-center p-6">
         <div class="w-full max-w-md space-y-8">
@@ -145,15 +149,9 @@
         </div>
     </div>
 
-    <div id="hud-content" class="absolute inset-0 flex flex-col transition-transform duration-500 bg-black">
+    <div id="hud-content" class="relative z-10 w-full h-full overflow-y-auto no-scrollbar flex flex-col transition-transform duration-500">
         
-        <div id="map-bg" class="absolute inset-0 opacity-60"></div>
-
-        <div id="scene-container" class="absolute inset-0 pointer-events-none hud-perspective overflow-hidden z-[5]">
-            <div id="grid-plane" class="absolute inset-[-50%] w-[200%] h-[200%] grid-bg animate-grid hud-grid-3d"></div>
-        </div>
-
-        <header class="relative z-50 p-6 flex justify-between items-start pointer-events-auto">
+        <header class="p-6 flex justify-between items-start pointer-events-auto flex-shrink-0">
             <div class="flex flex-col">
                 <div class="flex items-center gap-2 text-primary drop-shadow-md">
                     <div class="w-2 h-2 bg-primary animate-pulse rounded-full"></div>
@@ -177,8 +175,8 @@
             </div>
         </header>
 
-        <main class="flex-1 flex flex-col items-center justify-center relative z-20 pb-24 pointer-events-none">
-            <div class="relative group">
+        <main class="flex-grow flex flex-col items-center justify-center relative z-20 min-h-[400px]">
+            <div class="relative group scale-75 md:scale-100 transition-transform">
                 <div id="speed-circle" class="w-56 h-56 rounded-full bg-black/40 border-8 border-primary/30 flex flex-col items-center justify-center shadow-[0_0_50px_rgba(6,182,212,0.4)] backdrop-blur-md transition-colors duration-300">
                     <div id="limit-ring" class="absolute inset-0 rounded-full border-4 border-transparent transition-all duration-300"></div>
                 </div>
@@ -190,7 +188,7 @@
                 </div>
             </div>
             
-            <div id="limit-container" class="mt-12 flex flex-col items-center opacity-50 transition-opacity duration-300">
+            <div id="limit-container" class="mt-8 flex flex-col items-center opacity-50 transition-opacity duration-300">
                 <div id="limit-box" class="w-16 h-16 rounded border-4 border-white bg-black/80 backdrop-blur flex items-center justify-center transition-colors">
                     <span id="limit-display" class="font-sans font-bold text-3xl text-white">--</span>
                 </div>
@@ -198,7 +196,7 @@
             </div>
         </main>
 
-        <footer class="relative z-50 p-6 grid grid-cols-2 md:grid-cols-4 gap-4 bg-gradient-to-t from-black via-black/90 to-transparent pointer-events-auto">
+        <footer class="p-6 grid grid-cols-2 md:grid-cols-4 gap-4 bg-gradient-to-t from-black via-black/90 to-transparent pointer-events-auto flex-shrink-0">
             <div class="glass-panel p-4 rounded-lg border-l-2 border-primary/50">
                 <label class="text-[10px] text-muted uppercase tracking-widest block mb-1">Status</label>
                 <span class="text-primary font-mono text-sm md:text-lg flex items-center gap-2">
@@ -222,46 +220,30 @@
     </div>
 
     <script>
-        // --- MAP SYSTEM (Leaflet) ---
+        // --- MAP SYSTEM ---
         let map = null;
         let userMarker = null;
 
         const initMap = () => {
-            // Initialize map on 'map-bg', center on 0,0 initially
             map = L.map('map-bg', {
-                zoomControl: false,
-                attributionControl: false,
-                dragging: false,      // User can't move map, it follows GPS
-                touchZoom: false,
-                scrollWheelZoom: false,
-                doubleClickZoom: false,
-                boxZoom: false,
-                keyboard: false
+                zoomControl: false, attributionControl: false, dragging: false,      
+                touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false
             }).setView([0, 0], 16);
 
-            // Add Dark Tiles (CartoDB Dark Matter)
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                maxZoom: 20
-            }).addTo(map);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(map);
 
-            // Create Custom Arrow Icon
             const arrowIcon = L.divIcon({
                 className: 'custom-arrow',
                 html: '<div id="driver-arrow" class="arrow-icon"></div>',
-                iconSize: [20, 20],
-                iconAnchor: [10, 10]
+                iconSize: [20, 20], iconAnchor: [10, 10]
             });
-
             userMarker = L.marker([0, 0], {icon: arrowIcon}).addTo(map);
         };
 
-        // Update Marker Rotation based on Heading
         const updateMapMarker = (lat, lon, heading) => {
             if (!map) return;
-            map.setView([lat, lon], 17); // Keep map centered
+            map.setView([lat, lon], 17);
             userMarker.setLatLng([lat, lon]);
-            
-            // Rotate the arrow inside the marker
             const arrow = document.getElementById('driver-arrow');
             if (arrow && heading !== null && !isNaN(heading)) {
                 arrow.style.transform = `rotate(${heading}deg)`;
@@ -387,7 +369,7 @@
             const crd = pos.coords;
             state.lat = crd.latitude;
             state.lon = crd.longitude;
-            state.heading = crd.heading; // Get direction (0-360)
+            state.heading = crd.heading; 
 
             els.accLabel.innerText = `ACCURACY: ±${Math.round(crd.accuracy)}m`;
             els.lat.innerText = state.lat.toFixed(5);
@@ -401,9 +383,7 @@
             els.statusDot.classList.replace('bg-red-500', 'bg-primary');
             els.statusDot.classList.add('animate-pulse');
 
-            // Update Map
             updateMapMarker(state.lat, state.lon, state.heading);
-
             fetchSpeedLimit(state.lat, state.lon);
             checkSpeeding(finalSpeed);
         };
@@ -453,7 +433,7 @@
         });
 
         // --- INIT ---
-        initMap(); // Start Leaflet
+        initMap(); 
         if ('geolocation' in navigator) {
             els.statusText.innerText = "ACQUIRING...";
             navigator.geolocation.watchPosition(success, error, {
@@ -462,15 +442,14 @@
             requestWakeLock();
         }
 
-        // --- PWA SERVICE WORKER REGISTRATION (REQUIRED FOR INSTALL) ---
+        // --- SERVICE WORKER REGISTRATION WITH DEBUG ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js', { scope: './' })
-    .then(reg => console.log('SW Working', reg))
-    .catch(err => alert('SW Error: ' + err));
+                .then(reg => console.log('SW Registered'))
+                .catch(err => console.log('SW Failed', err));
             });
         }
     </script>
 </body>
 </html>
-
